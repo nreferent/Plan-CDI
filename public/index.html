@@ -292,7 +292,7 @@ const K_WIP="cdi-plan-encours-v2",K_CAT="cdi-catalogue-v1",K_LAY="cdi-dispositio
 const H=2.7;
 const POLY=[[0,0],[14.4,0],[14.4,7],[6.9,7],[6.9,11],[3.3,11],[3.3,7],[1.8,7],[1.8,7.4],[0,7.4]];
 /* Réserve : derrière la porte la plus à l'est du mur sud (vidéo 71-97 s et photos), cotes à ±30 cm */
-const RPOLY=[[11.85,7.14],[14.4,7.14],[14.4,11.2],[11.85,11.2]];
+const RPOLY=[[11.85,7.14],[14.4,7.14],[14.4,12.35],[11.85,12.35]];
 const ROOMS={cdi:POLY,res:RPOLY};
 const inAny=p=>Object.values(ROOMS).some(P=>pip(p,P));
 const win=(a,b)=>({a,b,kind:"win",bottom:1.0,top:2.25});
@@ -308,13 +308,14 @@ const WALLS=[
   {id:"ST",p:[1.8,7],q:[1.8,7.4],ops:[]},
   {id:"SW2",p:[1.8,7.4],q:[0,7.4],ops:[]},
   {id:"W",p:[0,7.4],q:[0,0],ops:[door(0.5,1.9,"Sortie",{leaves:2,porthole:true,top:2.1})]},
-  {id:"RE",room:"res",p:[14.4,7.14],q:[14.4,11.2],ops:[]},
-  {id:"RS",room:"res",p:[14.4,11.2],q:[11.85,11.2],ops:[]},
-  {id:"RW",room:"res",p:[11.85,11.2],q:[11.85,7.14],ops:[]}
+  {id:"RE",room:"res",p:[14.4,7.14],q:[14.4,12.35],ops:[]},
+  {id:"RS",room:"res",p:[14.4,12.35],q:[11.85,12.35],ops:[]},
+  {id:"RW",room:"res",p:[11.85,12.35],q:[11.85,7.14],ops:[]}
 ];
 const BOUNDS=(()=>{const all=[...POLY,...RPOLY];const xs=all.map(p=>p[0]),ys=all.map(p=>p[1]);return {W:Math.max(...xs),H:Math.max(...ys)};})();
-const PILLARS=[{x:9.85,y:6.45,w:0.5,h:0.55},{x:1.8,y:6.7,w:0.38,h:0.3}];
-const LEDS=[];for(const x of [1.6,4.5,7.4,10.3,13.2])for(const y of [1.9,5.0])LEDS.push([x,y]);LEDS.push([5.1,8.3],[5.1,10.0],[13.1,8.4],[13.1,10.2]);
+/* Décrochements : gros pilier entre le studio et l'horloge (65 cm de saillie), pilier du bureau, gaines verticales aux deux angles du mur de projection */
+const PILLARS=[{x:9.85,y:6.35,w:0.45,h:0.65},{x:1.8,y:6.7,w:0.38,h:0.3},{x:14.22,y:0,w:0.18,h:0.18},{x:14.22,y:6.82,w:0.18,h:0.18}];
+const LEDS=[];for(const x of [1.6,4.5,7.4,10.3,13.2])for(const y of [1.9,5.0])LEDS.push([x,y]);LEDS.push([5.1,8.3],[5.1,10.0],[13.1,8.6],[13.1,11.0]);
 const FANS=[[4.5,3.5],[8.8,3.5],[12.2,3.5]];
 
 function pip(p,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const [xi,yi]=P[i],[xj,yj]=P[j];if(((yi>p[1])!==(yj>p[1]))&&(p[0]<(xj-xi)*(p[1]-yi)/(yj-yi)+xi))c=!c;}return c;}
@@ -348,7 +349,7 @@ const SHAPES={
   cylindre:{l:"Cylindre (pouf, colonne, corbeille)",d:[45,45,45],c:"#E07B39"}
 };
 const SHAPE_NOTE={etagere:"Dos au mur côté haut du plan, livres visibles côté bas. Une travée = 94 cm.",double:"Livres des deux côtés, joues à lames blanches comme au CDI. Une travée = 94 cm.",poste:"Un écran tous les 75 cm environ, côté haut ; l'élève s'assoit côté bas.",chaise:"Dossier côté bas du plan quand l'angle vaut 0°.",fauteuil:"Dossier côté bas du plan quand l'angle vaut 0°.",presentoir:"Tablettes inclinées visibles côté bas, dos côté haut.",bureau:"Voile de fond côté haut (public), la personne s'assoit côté bas."};
-const SEED_V=2; // à augmenter quand les modèles de départ changent : ils remplacent alors l'ancienne version enregistrée
+const SEED_V=3; // à augmenter quand les modèles de départ changent : ils remplacent alors l'ancienne version enregistrée
 const SEED=[
   {id:"t-epi3",name:"Épi double face 3 travées",shape:"double",w:290,d:60,h:180,color:"#C9793A",ref:"Mesuré : travée 94 × 30 × 180 cm (Dewey, romans)"},
   {id:"t-epi2",name:"Épi double face 2 travées",shape:"double",w:192,d:60,h:180,color:"#C9793A",ref:"Mesuré : travée 94 × 30 × 180 cm (romans)"},
@@ -367,7 +368,7 @@ const SEED=[
   {id:"t-faut-o",name:"Fauteuil orange",shape:"fauteuil",w:65,d:65,h:80,color:"#E5893A",ref:"Mobilier actuel"},
   {id:"t-fbureau",name:"Fauteuil de bureau",shape:"fauteuil",w:60,d:60,h:100,color:"#2B2D30",ref:"Mobilier actuel (accueil)"},
   {id:"t-basse",name:"Table basse",shape:"ronde",w:70,d:50,h:40,color:"#3B3537",ref:"Mobilier actuel"},
-  {id:"t-pres",name:"Présentoir revues",shape:"presentoir",w:125,d:40,h:170,color:"#C9CED1",ref:"Mobilier actuel (orientation, manga)"},
+  {id:"t-pres",name:"Présentoir revues",shape:"presentoir",w:140,d:40,h:170,color:"#C9CED1",ref:"Mobilier actuel (orientation, manga)"},
   {id:"t-accueil",name:"Banque d'accueil",shape:"bureau",w:200,d:80,h:75,color:"#E3C79A",ref:"Mobilier actuel"},
   {id:"t-retour",name:"Retour de l'accueil",shape:"table",w:140,d:70,h:75,color:"#E3C79A",ref:"Mobilier actuel"},
   {id:"t-expo",name:"Table d'exposition 120 × 70",shape:"table",w:120,d:70,h:75,color:"#E3C79A",ref:"Mobilier actuel (hall)"},
@@ -395,7 +396,7 @@ const dims=T=>({w:T.w/100,d:T.d/100,h:T.h/100});
 function initialItems(){
   const L=[];const add=(t,x,y,r=0)=>L.push({t,x,y,r});
   // mur de projection : 4 tables informatiques, 8 postes
-  [0.85,2.35,3.85,5.35].forEach(y=>{add("t-poste",13.92,y,90);add("t-chaise",13.17,y-0.375,90);add("t-chaise",13.17,y+0.375,90);});
+  [0.95,2.45,3.95,5.45].forEach(y=>{add("t-poste",13.92,y,90);add("t-chaise",13.17,y-0.375,90);add("t-chaise",13.17,y+0.375,90);});
   // 4 épis de 3 travées perpendiculaires aux fenêtres, tablette de lecture au bout
   [4.85,6.95,9.05,11.15].forEach(x=>{add("t-epi3",x,1.6,90);add("t-tablette",x,3.3,0);});
   // tables de travail
@@ -405,13 +406,13 @@ function initialItems(){
   add("t-table",12.15,2.0,90);
   add("t-tabmob",11.95,5.8,0);
   // épis « Romans » contre le mur sud, de part et d'autre de l'horloge
-  add("t-epi2",8.25,5.97,90);add("t-epi2",9.35,5.97,90);
+  add("t-epi1",8.25,6.49,90);add("t-epi1",9.35,6.49,90);
   // accueil, table ronde
   add("t-accueil",2.75,5.1,90);add("t-retour",1.65,3.75,0);add("t-fbureau",1.85,4.75,90);add("t-fbureau",1.85,5.6,90);
   add("t-ronde",4.3,5.3,0);[[4.3,4.45,180],[5.15,5.3,270],[4.3,6.15,0],[3.45,5.3,90]].forEach(([x,y,r])=>add("t-chaise",x,y,r));
   add("t-imprim",0.75,7.18,0);
   // mur ouest : présentoirs ; coin BD et fauteuils sous les fenêtres
-  [2.1,3.35,4.6].forEach(y=>add("t-pres",0.21,y,270));
+  [1.4,2.8,4.2].forEach(y=>add("t-pres",0.21,y,270));
   add("t-bac",0.65,0.37,0);add("t-bac",1.7,0.37,0);add("t-tourn",2.85,0.75,0);add("t-epibas",3.95,0.65,90);
   add("t-faut-r",1.2,1.4,180);add("t-faut-r",2.05,1.4,180);add("t-basse",1.62,2.15,0);add("t-faut-o",1.2,2.9,0);add("t-faut-o",2.05,2.9,0);
   add("t-faut-v",3.95,1.9,270);
@@ -424,9 +425,10 @@ function initialItems(){
 /* Réserve : rayonnages métal bleus à l'est, bibliothèques noires, bureaux le long du mur ouest, chariots */
 function reserveItems(){
   const L=[];const add=(t,x,y,r=0)=>L.push({t,x,y,r});
-  add("t-armoire",13.6,7.36,0);add("t-armoire",12.85,10.98,180);
-  [8.2,9.2,10.2].forEach(y=>add("t-rayon",14.19,y,90));
-  add("t-table",12.27,8.75,90);add("t-table",12.27,10.0,90);add("t-chaise",12.92,8.75,270);add("t-chaise",12.92,10.0,270);
+  add("t-armoire",13.6,7.36,0);add("t-armoire",12.95,12.13,180);
+  [8.2,9.2,10.2,11.2].forEach(y=>add("t-rayon",14.19,y,90));
+  add("t-table",12.27,8.75,90);add("t-table",12.27,10.0,90);add("t-table",12.27,11.25,90);
+  add("t-chaise",12.92,8.75,270);add("t-chaise",12.92,10.0,270);
   add("t-chariot",13.6,8.9,90);add("t-chariot",13.6,10.05,90);
   return L;
 }
@@ -439,7 +441,7 @@ let drag=null,band=null;
 const selItems=()=>items.filter(i=>sel.has(i.id));
 function setSel(ids){sel.clear();ids.forEach(i=>sel.add(i));}
 function setItems(arr){items=arr.map(i=>({id:0,t:i.t,x:+i.x,y:+i.y,r:+i.r||0}));idc=1;items.forEach(i=>{i.id=idc++;});}
-let wipT;function saveWip(){clearTimeout(wipT);wipT=setTimeout(()=>LS.set(K_WIP,{v:3,items:items.map(({t,x,y,r})=>({t,x,y,r})),current,ghost:[...GHOST.values()]}),250);}
+let wipT;function saveWip(){clearTimeout(wipT);wipT=setTimeout(()=>LS.set(K_WIP,{v:4,items:items.map(({t,x,y,r})=>({t,x,y,r})),current,ghost:[...GHOST.values()]}),250);}
 function markDirty(){if(!current.dirty){current.dirty=true;renderLayouts();}}
 
 /* ================= Géométrie des meubles ================= */
@@ -527,14 +529,14 @@ function render2D(){
   h+=T(14.72,3.1,"Mur de projection · postes",90);
   h+=T(-0.3,3.35,"Présentoirs",-90);
   h+=T(-0.3,6.2,"Sortie",-90);
-  h+=T(11.62,9.17,"Réserve",-90);h+=T(10.9,7.45,"Studio");h+=T(7.42,7.45,"Porte");h+=T(9.62,7.45,"Horloge");
+  h+=T(11.62,9.75,"Réserve",-90);h+=T(10.9,7.45,"Studio");h+=T(7.42,7.45,"Porte");h+=T(9.62,7.45,"Horloge");
   h+=T(5.1,11.48,"Entrée · portes vitrées");
   h+=T(3.0,8.55,"Tableau blanc",-90);h+=T(2.67,7.45,"Bureau");
   h+=T(5.1,8.9,"Hall d'entrée");
   // cotes
   const dimH=(x1,x2,y,t)=>`<line class="dim" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line class="dim" x1="${x1}" y1="${y-0.08}" x2="${x1}" y2="${y+0.08}"/><line class="dim" x1="${x2}" y1="${y-0.08}" x2="${x2}" y2="${y+0.08}"/><text class="dimt" x="${(x1+x2)/2}" y="${y-0.08}" text-anchor="middle">${t}</text>`;
   const dimV=(y1,y2,x,t)=>`<line class="dim" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/><line class="dim" x1="${x-0.08}" y1="${y1}" x2="${x+0.08}" y2="${y1}"/><line class="dim" x1="${x-0.08}" y1="${y2}" x2="${x+0.08}" y2="${y2}"/><text class="dimt" transform="translate(${x-0.08} ${(y1+y2)/2}) rotate(-90)" text-anchor="middle">${t}</text>`;
-  h+=dimH(0,14.4,-0.7,"≈ 14,40 m");h+=dimV(0,7.4,-0.75,"≈ 7,40 m");h+=dimV(0,7,15.15,"≈ 7,00 m");h+=dimV(7.14,11.2,15.15,"≈ 4,05 m");h+=dimH(11.85,14.4,11.95,"≈ 2,55 m");h+=dimH(3.3,6.9,11.95,"≈ 3,60 m");h+=dimV(7,11,7.6,"≈ 4,00 m");
+  h+=dimH(0,14.4,-0.7,"≈ 14,40 m");h+=dimV(0,7.4,-0.75,"≈ 7,40 m");h+=dimV(0,7,15.15,"≈ 7,00 m");h+=dimV(7.14,12.35,15.15,"≈ 5,20 m");h+=dimH(11.85,14.4,13.1,"≈ 2,55 m");h+=dimH(3.3,6.9,11.95,"≈ 3,60 m");h+=dimV(7,11,7.6,"≈ 4,00 m");
   items.forEach(it=>{h+=itemSvg(it);});
   svg.innerHTML=h;
 }
@@ -1008,7 +1010,7 @@ function setCam(k){
   if(k==="top"){camera.position.set(7.2,19,5.51);controls.target.set(7.2,0,5.5);}
   else if(k==="eye"){camera.position.set(5.1,1.6,10.6);controls.target.set(7.8,1.0,2.0);}
   else if(k==="pc"){camera.position.set(13.0,1.6,6.3);controls.target.set(3.0,1.0,2.6);}
-  else if(k==="res"){camera.position.set(12.4,1.6,7.0);controls.target.set(13.5,0.9,10.6);}
+  else if(k==="res"){camera.position.set(12.4,1.6,7.0);controls.target.set(13.4,0.9,11.6);}
   else{camera.position.set(12.5,13.5,19.5);controls.target.set(7.4,0.3,5.6);}
   controls.update();render3D();
 }
@@ -1020,7 +1022,9 @@ new MutationObserver(rethemed).observe(document.documentElement,{attributes:true
 /* ================= Démarrage ================= */
 (function start(){
   const w=LS.get(K_WIP);
-  if(w&&Array.isArray(w.items)){(w.ghost||[]).forEach(T=>GHOST.set(T.id,T));setItems((w.v||2)<3?[...w.items,...reserveItems()]:w.items);current=w.current||{name:null,dirty:false};}
+  if(w&&Array.isArray(w.items)){(w.ghost||[]).forEach(T=>GHOST.set(T.id,T));const old=(w.v||2)<4,mod=!!(w.current&&w.current.dirty);current=w.current||{name:null,dirty:false};
+    // plan recalé : on repart de l'état actuel sauf si des modifications n'ont pas été enregistrées
+    setItems(old&&!mod?initialItems():(w.v||2)<3?[...w.items,...reserveItems()]:w.items);}
   else setItems(initialItems());
   evaluate();render2D();renderSide();renderLayouts();renderCat();
   if(init3D()){if(!envTex){const b=document.querySelector('[data-q="real"]');b.disabled=true;b.title="Indisponible sur cet appareil";}applyQuality();setCam("iso");}
