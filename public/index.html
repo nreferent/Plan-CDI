@@ -148,6 +148,7 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-b
 #plan .it.warn .b{stroke:var(--warn);stroke-width:.045}
 #plan .it.bad .b{stroke:var(--bad);stroke-width:.05}
 #plan .it.sel .b{stroke:var(--accent);stroke-width:.055}
+#plan .it.kid .b{stroke:var(--accent);stroke-width:.03;stroke-dasharray:.05 .03}
 #plan .it.drag{cursor:grabbing}
 #plan .band{fill:var(--accent);fill-opacity:.1;stroke:var(--accent);stroke-width:.02;stroke-dasharray:.08 .05;pointer-events:none}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
@@ -192,7 +193,25 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-b
         <button id="bEditType">Modifier le modèle</button>
         <button id="bDel" class="danger">Retirer</button>
       </div>
+      <div class="row" id="graftRow" style="margin-top:8px">
+        <button id="bGraft">Greffer à la table</button>
+        <button id="bUngraft" class="ghost">Détacher</button>
+        <button id="bTuckIn">Rentrer les chaises</button>
+        <button id="bTuckOut">Sortir les chaises</button>
+      </div>
+      <p class="note" id="graftInfo"></p>
       <p class="note">Clavier : <kbd>R</kbd> pivoter, flèches pour décaler de 5 cm (<kbd>Maj</kbd> : 25 cm), <kbd>Ctrl</kbd>+<kbd>D</kbd> dupliquer, <kbd>Suppr</kbd> retirer, <kbd>Échap</kbd> désélectionner.</p>
+    </section>
+
+    <section class="box">
+      <h2>Chaises</h2>
+      <div class="row">
+        <button id="bAllIn">Tout rentrer</button>
+        <button id="bAllOut">Tout sortir</button>
+        <button id="bAutoGraft" class="ghost">Greffer automatiquement</button>
+      </div>
+      <p class="note">Une chaise greffée suit sa table : elle bouge, pivote, se duplique et se retire avec elle. Pour greffer, sélectionnez une ou plusieurs chaises et leur table (<kbd>Maj</kbd> + clic), puis « Greffer à la table ». « Greffer automatiquement » relie chaque chaise libre à la table qui la touche.</p>
+      <div class="msg" id="chairMsg"></div>
     </section>
 
     <section class="box">
@@ -446,8 +465,11 @@ let layouts=[];
 let drag=null,band=null;
 const selItems=()=>items.filter(i=>sel.has(i.id));
 function setSel(ids){sel.clear();ids.forEach(i=>sel.add(i));}
-function setItems(arr){items=arr.map(i=>({id:0,t:i.t,x:+i.x,y:+i.y,r:+i.r||0}));idc=1;items.forEach(i=>{i.id=idc++;});}
-let wipT;function saveWip(){clearTimeout(wipT);wipT=setTimeout(()=>LS.set(K_WIP,{v:4,items:items.map(({t,x,y,r})=>({t,x,y,r})),current,ghost:[...GHOST.values()]}),250);}
+function setItems(arr){items=arr.map(i=>({id:0,t:i.t,x:+i.x,y:+i.y,r:+i.r||0}));idc=1;items.forEach(i=>{i.id=idc++;});
+  // greffes : « p » = rang de la table dans la liste, « k » = chaise rentrée
+  items.forEach((it,k)=>{const p=arr[k].p;if(Number.isInteger(p)&&p!==k&&items[p]){it.par=items[p].id;if(arr[k].k)it.tk=1;}});}
+function serial(){const idx=new Map(items.map((i,k)=>[i.id,k]));return items.map(({t,x,y,r,par,tk})=>{const o={t,x,y,r};if(par&&idx.has(par)){o.p=idx.get(par);if(tk)o.k=1;}return o;});}
+let wipT;function saveWip(){clearTimeout(wipT);wipT=setTimeout(()=>LS.set(K_WIP,{v:4,items:serial(),current,ghost:[...GHOST.values()]}),250);}
 function markDirty(){if(!current.dirty){current.dirty=true;renderLayouts();}}
 
 /* ================= Géométrie des meubles ================= */
@@ -467,7 +489,7 @@ function ordLabel(it){const T=typeOf(it);const same=items.filter(o=>o.t===it.t);
 
 let issues=[];
 function evaluate(){
-  issues=[];const F=items.map(foot);
+  cleanLinks();issues=[];const F=items.map(foot);
   items.forEach((it,i)=>{const T=typeOf(it);const C=F[i];const is=[];
     if(!inside(C))is.push({lvl:"bad",txt:"dépasse des murs de la salle"});
     if(PILLARS.some(p=>sat(C,rectPts(p))))is.push({lvl:"bad",txt:"touche un pilier"});
@@ -482,7 +504,7 @@ const svg=$("#plan");
 function shade(hex,k){const n=parseInt(hex.slice(1),16);let r=n>>16,g=(n>>8)&255,b=n&255;const f=v=>Math.round(k>0?v+(255-v)*k:v*(1+k));return `rgb(${f(r)},${f(g)},${f(b)})`;}
 function itemSvg(it){
   const T=typeOf(it);const {w,d}=dims(T);const c=/^#[0-9a-f]{6}$/i.test(T.color)?T.color:"#999999";const fill=shade(c,0.12);
-  const st=it._st||"ok";let g=`<g class="it ${st}${sel.has(it.id)?" sel":""}${drag&&sel.has(it.id)?" drag":""}" data-id="${it.id}" transform="translate(${it.x} ${it.y}) rotate(${it.r})">`;
+  const st=it._st||"ok";let g=`<g class="it ${st}${sel.has(it.id)?" sel":""}${it.par&&sel.has(it.par)&&!sel.has(it.id)?" kid":""}${drag&&sel.has(it.id)?" drag":""}" data-id="${it.id}" transform="translate(${it.x} ${it.y}) rotate(${it.r})">`;
   const x0=-w/2,y0=-d/2;const R=(x,y,ww,hh,cls,extra="")=>`<rect class="${cls}" x="${x}" y="${y}" width="${ww}" height="${hh}" ${extra}/>`;
   switch(T.shape){
     case "ronde":case "cylindre":g+=`<ellipse class="b" cx="0" cy="0" rx="${w/2}" ry="${d/2}" fill="${fill}"/>`;if(T.shape==="ronde")g+=`<circle class="df" r="${Math.min(w,d)*0.08}"/>`;break;
@@ -547,7 +569,8 @@ function render2D(){
   const dimH=(x1,x2,y,t)=>`<line class="dim" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line class="dim" x1="${x1}" y1="${y-0.08}" x2="${x1}" y2="${y+0.08}"/><line class="dim" x1="${x2}" y1="${y-0.08}" x2="${x2}" y2="${y+0.08}"/><text class="dimt" x="${(x1+x2)/2}" y="${y-0.08}" text-anchor="middle">${t}</text>`;
   const dimV=(y1,y2,x,t)=>`<line class="dim" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/><line class="dim" x1="${x-0.08}" y1="${y1}" x2="${x+0.08}" y2="${y1}"/><line class="dim" x1="${x-0.08}" y1="${y2}" x2="${x+0.08}" y2="${y2}"/><text class="dimt" transform="translate(${x-0.08} ${(y1+y2)/2}) rotate(-90)" text-anchor="middle">${t}</text>`;
   h+=dimH(0,14.4,-0.7,"≈ 14,40 m");h+=dimV(0,7.4,-0.75,"≈ 7,40 m");h+=dimV(0,7,15.15,"≈ 7,00 m");h+=dimV(7.14,12.35,15.15,"≈ 5,20 m");h+=dimH(11.85,14.4,13.1,"≈ 2,55 m");h+=dimH(3.3,6.9,11.95,"≈ 3,60 m");h+=dimV(7,11,7.6,"≈ 4,00 m");
-  items.forEach(it=>{h+=itemSvg(it);});
+  // chaises dessinées d'abord : rentrées, elles passent sous le plateau
+  [...items].sort((a,b)=>(isChair(b)?1:0)-(isChair(a)?1:0)).forEach(it=>{h+=itemSvg(it);});
   svg.innerHTML=h;
 }
 function svgPt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
@@ -558,7 +581,7 @@ svg.addEventListener("pointerdown",e=>{
   if(multi){if(sel.has(id))sel.delete(id);else sel.add(id);refresh(false);if(!sel.has(id))return;}
   const collapse=!multi&&sel.has(id)&&sel.size>1?id:null;
   if(!multi&&!sel.has(id))setSel([id]);
-  drag={x0:p.x,y0:p.y,start:new Map(selItems().map(t=>[t.id,[t.x,t.y]])),moved:false,collapse};
+  drag={x0:p.x,y0:p.y,start:new Map(withKids(selItems()).map(t=>[t.id,[t.x,t.y]])),moved:false,collapse};
   svg.setPointerCapture(e.pointerId);e.preventDefault();refresh(false);
 });
 svg.addEventListener("pointermove",e=>{
@@ -595,21 +618,63 @@ function renderSide(){
     if(document.activeElement!==$("#sy"))$("#sy").value=t.y.toFixed(2);
     if(document.activeElement!==$("#sr"))$("#sr").value=Math.round(t.r);}
   else if(ts.length>1){$("#selTitle").textContent=ts.length+" meubles sélectionnés";$("#sFields").hidden=true;$("#bEditType").hidden=true;}
+  if(ts.length){const chairs=ts.filter(isChair),hosts=ts.filter(isHost),grafted=chairs.filter(c=>c.par),cs=chairsOfSel();
+    const nk=hosts.reduce((a,h)=>a+kidsOf(h.id).length,0);
+    $("#bGraft").hidden=!chairs.length;$("#bUngraft").hidden=!grafted.length;
+    $("#bTuckIn").hidden=!cs.some(c=>!c.tk);$("#bTuckOut").hidden=!cs.some(c=>c.tk);
+    $("#graftRow").hidden=[...$("#graftRow").children].every(b=>b.hidden);
+    const parts=[];if(nk)parts.push(`${nk} chaise${nk>1?"s":""} greffée${nk>1?"s":""} suivent ${hosts.length>1?"ces tables":"cette table"}`);
+    if(chairs.length===1&&chairs[0].par){const h=items.find(i=>i.id===chairs[0].par);if(h)parts.push(`Greffée à « ${ordLabel(h)} »${chairs[0].tk?", rentrée":""}`);}
+    $("#graftInfo").textContent=parts.length?parts.join(". ")+".":"";$("#graftInfo").hidden=!parts.length;}
 }
 $("#alerts").addEventListener("click",e=>{const li=e.target.closest("li[data-id]");if(li){setSel([+li.dataset.id]);refresh(false);}});
 function refresh(rebuild3d=true){evaluate();render2D();renderSide();renderCat();saveWip();if(rebuild3d)build3D();else paint3DSel();}
 
 const num_=(id,min,max,def)=>{const v=parseFloat($(id).value);return isFinite(v)?Math.min(max,Math.max(min,v)):def;};
 ["#sx","#sy","#sr"].forEach(id=>$(id).addEventListener("change",()=>{const ts=selItems();if(ts.length!==1)return;const t=ts[0];
-  t.x=num_("#sx",-2,30,t.x);t.y=num_("#sy",-2,30,t.y);t.r=((num_("#sr",-720,720,t.r)%360)+360)%360;markDirty();refresh();}));
-function rotSel(deg=90){const ts=selItems();if(!ts.length)return;
-  const cx=ts.reduce((a,t)=>a+t.x,0)/ts.length,cy=ts.reduce((a,t)=>a+t.y,0)/ts.length;const a=deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);
-  ts.forEach(t=>{if(ts.length>1){const dx=t.x-cx,dy=t.y-cy;t.x=+(cx+dx*c-dy*s).toFixed(3);t.y=+(cy+dx*s+dy*c).toFixed(3);}t.r=((t.r+deg)%360+360)%360;});markDirty();refresh();}
-function delSel(){if(!sel.size)return;items=items.filter(t=>!sel.has(t.id));sel.clear();markDirty();refresh();}
-function dupSel(){const ts=selItems();if(!ts.length)return;
-  const copies=ts.map(t=>{const {w}=dims(typeOf(t));const c={id:idc++,t:t.t,x:t.x,y:t.y,r:t.r};
-    if(ts.length===1){const a=t.r*Math.PI/180;c.x=+(t.x+(w+0.05)*Math.cos(a)).toFixed(3);c.y=+(t.y+(w+0.05)*Math.sin(a)).toFixed(3);}else{c.x=+(t.x+0.4).toFixed(3);c.y=+(t.y+0.4).toFixed(3);}return c;});
-  items.push(...copies);setSel(copies.map(c=>c.id));markDirty();refresh();}
+  const ox=t.x,oy=t.y,or=t.r;t.x=num_("#sx",-2,30,t.x);t.y=num_("#sy",-2,30,t.y);t.r=((num_("#sr",-720,720,t.r)%360)+360)%360;
+  const da=(t.r-or)*Math.PI/180,c=Math.cos(da),s=Math.sin(da);
+  kidsOf(t.id).forEach(k=>{const dx=k.x-ox,dy=k.y-oy;k.x=+(t.x+dx*c-dy*s).toFixed(3);k.y=+(t.y+dx*s+dy*c).toFixed(3);k.r=((k.r+t.r-or)%360+360)%360;});
+  markDirty();refresh();}));
+// une table sélectionnée entraîne ses chaises greffées ; une table seule pivote autour de son centre
+function rotSel(deg=90){const ts=selItems();if(!ts.length)return;const all=withKids(ts),roots=rootsOf(ts);
+  const piv=roots.length===1?{x:roots[0].x,y:roots[0].y}:{x:roots.reduce((a,t)=>a+t.x,0)/roots.length,y:roots.reduce((a,t)=>a+t.y,0)/roots.length};
+  const a=deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);
+  all.forEach(t=>{if(all.length>1){const dx=t.x-piv.x,dy=t.y-piv.y;t.x=+(piv.x+dx*c-dy*s).toFixed(3);t.y=+(piv.y+dx*s+dy*c).toFixed(3);}t.r=((t.r+deg)%360+360)%360;});markDirty();refresh();}
+function delSel(){if(!sel.size)return;const gone=new Set(withKids(selItems()).map(i=>i.id));items=items.filter(t=>!gone.has(t.id));sel.clear();markDirty();refresh();}
+function dupSel(){const ts=selItems();if(!ts.length)return;const all=withKids(ts),roots=rootsOf(ts);
+  let ox=0.4,oy=0.4;if(roots.length===1){const r0=roots[0],{w}=dims(typeOf(r0)),a=r0.r*Math.PI/180;ox=(w+0.05)*Math.cos(a);oy=(w+0.05)*Math.sin(a);}
+  const map=new Map();const copies=all.map(t=>{const c={id:idc++,t:t.t,x:+(t.x+ox).toFixed(3),y:+(t.y+oy).toFixed(3),r:t.r};map.set(t.id,c);return c;});
+  all.forEach(t=>{if(!t.par)return;const c=map.get(t.id);c.par=map.has(t.par)?map.get(t.par).id:t.par;if(t.tk)c.tk=1;});
+  items.push(...copies);setSel(ts.map(t=>map.get(t.id).id));markDirty();refresh();}
+/* ---------- chaises greffées ---------- */
+const TUCK=0.3; // une chaise rentrée glisse de 30 cm sous le plateau
+function isChair(it){return typeOf(it).shape==="chaise";}
+function isHost(it){return UNDER.has(typeOf(it).shape);}
+function kidsOf(id){return items.filter(i=>i.par===id);}
+function withKids(list){const m=new Map(list.map(i=>[i.id,i]));list.forEach(i=>kidsOf(i.id).forEach(k=>m.set(k.id,k)));return [...m.values()];}
+function rootsOf(list){const ids=new Set(list.map(i=>i.id));return list.filter(i=>!(i.par&&ids.has(i.par)));}
+function cleanLinks(){const ids=new Set(items.map(i=>i.id));items.forEach(i=>{if(i.par&&(!ids.has(i.par)||!isChair(i))){delete i.par;delete i.tk;}});}
+function distToItem(pt,it){const C=foot(it);if(pip(pt,C))return 0;let m=Infinity;
+  for(let i=0;i<C.length;i++){const a=C[i],b=C[(i+1)%C.length];const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1;let t=((pt[0]-a[0])*dx+(pt[1]-a[1])*dy)/l;t=Math.max(0,Math.min(1,t));m=Math.min(m,Math.hypot(a[0]+t*dx-pt[0],a[1]+t*dy-pt[1]));}return m;}
+function graft(chairs,hosts,max){let n=0;chairs.forEach(c=>{let best=null,bd=max;hosts.forEach(h=>{const d=distToItem([c.x,c.y],h);if(d<bd){bd=d;best=h;}});if(best){if(c.par!==best.id)delete c.tk;c.par=best.id;n++;}});return n;}
+function autoGraft(){return graft(items.filter(i=>isChair(i)&&!i.par),items.filter(isHost),0.45);}
+function faceDir(c){const a=c.r*Math.PI/180;return [Math.sin(a),-Math.cos(a)];}
+function setTuck(c,on){const h=items.find(i=>i.id===c.par);if(!h||!!c.tk===on)return false;const [fx,fy]=faceDir(c);
+  if(on&&fx*(h.x-c.x)+fy*(h.y-c.y)<=0)return false; // la chaise tourne le dos à sa table
+  const k=on?TUCK:-TUCK;c.x=+(c.x+fx*k).toFixed(3);c.y=+(c.y+fy*k).toFixed(3);if(on)c.tk=1;else delete c.tk;return true;}
+function chairsOfSel(){const ts=selItems();const m=new Map();ts.forEach(t=>{if(isChair(t)&&t.par)m.set(t.id,t);if(isHost(t))kidsOf(t.id).forEach(k=>m.set(k.id,k));});return [...m.values()];}
+function tuckList(list,on){const n=list.filter(c=>setTuck(c,on)).length;if(n){markDirty();refresh();}return n;}
+const chairMsg=t=>{$("#chairMsg").textContent=t;};
+$("#bGraft").onclick=()=>{const ts=selItems();const chairs=ts.filter(isChair);const hostsSel=ts.filter(isHost);
+  const n=graft(chairs,hostsSel.length?hostsSel:items.filter(isHost),hostsSel.length?1.2:0.6);
+  chairMsg(n?`${n} chaise${n>1?"s":""} greffée${n>1?"s":""}.`:"Aucune table assez proche : rapprochez la chaise ou sélectionnez aussi la table.");if(n){markDirty();refresh(false);}};
+$("#bUngraft").onclick=()=>{let n=0;selItems().forEach(t=>{if(t.par){delete t.par;delete t.tk;n++;}});chairMsg(n?`${n} chaise${n>1?"s":""} détachée${n>1?"s":""}.`:"");if(n){markDirty();refresh(false);}};
+$("#bTuckIn").onclick=()=>tuckList(chairsOfSel(),true);
+$("#bTuckOut").onclick=()=>tuckList(chairsOfSel(),false);
+$("#bAllIn").onclick=()=>{const n=tuckList(items.filter(i=>i.par),true);chairMsg(n?`${n} chaise${n>1?"s":""} rentrée${n>1?"s":""}.`:"Aucune chaise greffée à rentrer.");};
+$("#bAllOut").onclick=()=>{const n=tuckList(items.filter(i=>i.tk),false);chairMsg(n?`${n} chaise${n>1?"s":""} sortie${n>1?"s":""}.`:"Aucune chaise rentrée.");};
+$("#bAutoGraft").onclick=()=>{const n=autoGraft();chairMsg(n?`${n} chaise${n>1?"s":""} greffée${n>1?"s":""} à la table la plus proche.`:"Toutes les chaises proches d'une table sont déjà greffées.");if(n){markDirty();refresh(false);}};
 $("#bRot").onclick=()=>rotSel(90);$("#bRot15").onclick=()=>rotSel(15);$("#bDel").onclick=delSel;$("#bDup").onclick=dupSel;
 $("#bEditType").onclick=()=>{const ts=selItems();if(ts.length===1)openForm(typeOf(ts[0]));};
 document.addEventListener("keydown",e=>{
@@ -618,7 +683,7 @@ document.addEventListener("keydown",e=>{
   const ts=selItems();if(!ts.length)return;
   if((e.ctrlKey||e.metaKey)&&(e.key==="d"||e.key==="D")){e.preventDefault();dupSel();return;}
   const st=e.shiftKey?0.25:0.05;const mv={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key];
-  if(mv){e.preventDefault();ts.forEach(t=>{t.x=+(t.x+mv[0]).toFixed(3);t.y=+(t.y+mv[1]).toFixed(3);});markDirty();refresh();}
+  if(mv){e.preventDefault();withKids(ts).forEach(t=>{t.x=+(t.x+mv[0]).toFixed(3);t.y=+(t.y+mv[1]).toFixed(3);});markDirty();refresh();}
   else if(e.key==="r"||e.key==="R"){e.preventDefault();rotSel(90);}
   else if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();delSel();}
   else if(e.key==="Escape"){sel.clear();refresh(false);}
@@ -686,7 +751,7 @@ function renderLayouts(){
 function snapshotTypes(){const ids=new Set(items.map(i=>i.t));return [...ids].map(id=>CAT.find(t=>t.id===id)||GHOST.get(id)).filter(Boolean);}
 async function doSave(name){
   $("#bSave").disabled=true;layMsg("Enregistrement…");
-  try{const r=await API.put(name,{items:items.map(({t,x,y,r})=>({t,x,y,r})),types:snapshotTypes()});
+  try{const r=await API.put(name,{items:serial(),types:snapshotTypes()});
     current={name,dirty:false};const ex=layouts.find(l=>l.name===name);const meta={name,savedAt:r.savedAt||new Date().toISOString(),count:items.length};
     if(ex)Object.assign(ex,meta);else layouts.push(meta);sortLayouts();renderLayouts();saveWip();layMsg("« "+name+" » enregistrée"+(API.shared?" pour tous.":" dans ce navigateur."));}
   catch(e){layMsg("Échec de l'enregistrement : "+e.message,true);}
@@ -1058,8 +1123,8 @@ new MutationObserver(rethemed).observe(document.documentElement,{attributes:true
   const w=LS.get(K_WIP);
   if(w&&Array.isArray(w.items)){(w.ghost||[]).forEach(T=>GHOST.set(T.id,T));const old=(w.v||2)<4,mod=!!(w.current&&w.current.dirty);current=w.current||{name:null,dirty:false};
     // plan recalé : on repart de l'état actuel sauf si des modifications n'ont pas été enregistrées
-    setItems(old&&!mod?initialItems():(w.v||2)<3?[...w.items,...reserveItems()]:w.items);}
-  else setItems(initialItems());
+    if(old&&!mod){setItems(initialItems());autoGraft();}else setItems((w.v||2)<3?[...w.items,...reserveItems()]:w.items);}
+  else{setItems(initialItems());autoGraft();}
   evaluate();render2D();renderSide();renderLayouts();renderCat();
   if(init3D()){if(!envTex){const b=document.querySelector('[data-q="real"]');b.disabled=true;b.title="Indisponible sur cet appareil";}applyQuality();setCam("iso");}
   boot();
