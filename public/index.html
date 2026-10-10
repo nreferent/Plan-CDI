@@ -346,11 +346,17 @@ const SHAPES={
   bureau:{l:"Bureau / banque d'accueil",d:[200,80,75],c:"#E3C79A"},
   tableau:{l:"Tableau blanc mobile",d:[150,60,190],c:"#F4F5F2"},
   bac:{l:"Bac à BD / albums",d:[100,60,60],c:"#C9793A"},
-  cylindre:{l:"Cylindre (pouf, colonne, corbeille)",d:[45,45,45],c:"#E07B39"}
+  cylindre:{l:"Cylindre (pouf, colonne, corbeille)",d:[45,45,45],c:"#E07B39"},
+  oeuf:{l:"Fauteuil suspendu (œuf sur pied)",d:[102,102,195],c:"#4A4B4C"},
+  pouf:{l:"Pouf / coussin de sol",d:[180,140,35],c:"#6B6F72"},
+  ecran:{l:"Écran de projection (mural ou plafond)",d:[210,10,260],c:"#C9CCCE"}
 };
-const SHAPE_NOTE={etagere:"Dos au mur côté haut du plan, livres visibles côté bas. Une travée = 94 cm.",double:"Livres des deux côtés, joues à lames blanches comme au CDI. Une travée = 94 cm.",poste:"Un écran tous les 75 cm environ, côté haut ; l'élève s'assoit côté bas.",chaise:"Dossier côté bas du plan quand l'angle vaut 0°.",fauteuil:"Dossier côté bas du plan quand l'angle vaut 0°.",presentoir:"Tablettes inclinées visibles côté bas, dos côté haut.",bureau:"Voile de fond côté haut (public), la personne s'assoit côté bas."};
+const SHAPE_NOTE={etagere:"Dos au mur côté haut du plan, livres visibles côté bas. Une travée = 94 cm.",double:"Livres des deux côtés, joues à lames blanches comme au CDI. Une travée = 94 cm.",poste:"Un écran tous les 75 cm environ, côté haut ; l'élève s'assoit côté bas.",chaise:"Dossier côté bas du plan quand l'angle vaut 0°.",fauteuil:"Dossier côté bas du plan quand l'angle vaut 0°.",presentoir:"Tablettes inclinées visibles côté bas, dos côté haut.",bureau:"Voile de fond côté haut (public), la personne s'assoit côté bas.",oeuf:"Ouverture du fauteuil côté bas du plan.",pouf:"Coussin rempli : la hauteur est l'épaisseur une fois garni.",ecran:"Largeur = longueur du carter, hauteur = haut du carter depuis le sol. Toile au format 4:3, côté bas du plan. Fixé au mur ou au plafond : il ne gêne pas les meubles au sol."};
 const SEED_V=3; // à augmenter quand les modèles de départ changent : ils remplacent alors l'ancienne version enregistrée
 const SEED=[
+  {id:"t-ecran",name:"Écran SuperGear Pro 200 × 150",shape:"ecran",w:210,d:10,h:260,color:"#C9CCCE",ref:"https://www.manutan-collectivites.fr/product/ecrans-manuels-de-projection-professionnel-carre-4-3-ou-16-10e-mig4201138.html"},
+  {id:"t-oeuf",name:"Fauteuil œuf suspendu",shape:"oeuf",w:102,d:102,h:195,color:"#4A4B4C",ref:"https://www.aosom.fr/item/outsunny-fauteuil-suspendu-exterieur-fauteuil-suspendu-egg-chair-resistant-aux-intemperies-incl-coussin-102-cm-x~1T3O49R3HM800.html"},
+  {id:"t-pouf",name:"Pouf géant 180 × 140",shape:"pouf",w:180,d:140,h:35,color:"#6B6F72",ref:"https://www.amazon.fr/dp/B0DPQT8CCL"},
   {id:"t-epi3",name:"Épi double face 3 travées",shape:"double",w:290,d:60,h:180,color:"#C9793A",ref:"Mesuré : travée 94 × 30 × 180 cm (Dewey, romans)"},
   {id:"t-epi2",name:"Épi double face 2 travées",shape:"double",w:192,d:60,h:180,color:"#C9793A",ref:"Mesuré : travée 94 × 30 × 180 cm (romans)"},
   {id:"t-epi1",name:"Épi double face 1 travée",shape:"double",w:98,d:60,h:180,color:"#C9793A",ref:"Mesuré : travée 94 × 30 × 180 cm"},
@@ -447,7 +453,8 @@ function markDirty(){if(!current.dirty){current.dirty=true;renderLayouts();}}
 /* ================= Géométrie des meubles ================= */
 function rectC(x,y,r,w,d){const a=r*Math.PI/180,c=Math.cos(a),s=Math.sin(a);return [[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]].map(([u,v])=>[x+u*c-v*s,y+u*s+v*c]);}
 function ellC(x,y,r,w,d){const a=r*Math.PI/180,c=Math.cos(a),s=Math.sin(a),P=[];for(let k=0;k<16;k++){const t=k/16*Math.PI*2,u=Math.cos(t)*w/2,v=Math.sin(t)*d/2;P.push([x+u*c-v*s,y+u*s+v*c]);}return P;}
-const ROUND=new Set(["ronde","cylindre"]);
+const ROUND=new Set(["ronde","cylindre","oeuf"]);
+const WALLMOUNT=new Set(["ecran"]); // accrochés au mur ou au plafond : pas de conflit avec le mobilier au sol
 function foot(it){const T=typeOf(it);const {w,d}=dims(T);return ROUND.has(T.shape)?ellC(it.x,it.y,it.r,w,d):rectC(it.x,it.y,it.r,w,d);}
 function sat(A,B){for(const P of [A,B])for(let i=0;i<P.length;i++){const p=P[i],q=P[(i+1)%P.length];const nx=q[1]-p[1],ny=p[0]-q[0];
   let a0=Infinity,a1=-Infinity,b0=Infinity,b1=-Infinity;for(const v of A){const t=v[0]*nx+v[1]*ny;a0=Math.min(a0,t);a1=Math.max(a1,t);}for(const v of B){const t=v[0]*nx+v[1]*ny;b0=Math.min(b0,t);b1=Math.max(b1,t);}
@@ -464,9 +471,9 @@ function evaluate(){
   items.forEach((it,i)=>{const T=typeOf(it);const C=F[i];const is=[];
     if(!inside(C))is.push({lvl:"bad",txt:"dépasse des murs de la salle"});
     if(PILLARS.some(p=>sat(C,rectPts(p))))is.push({lvl:"bad",txt:"touche un pilier"});
-    items.forEach((o,j)=>{if(j===i)return;const To=typeOf(o);if(tucks(T.shape,To.shape))return;if(sat(C,F[j]))is.push({lvl:"bad",txt:"chevauche "+ordLabel(o)});});
-    DOORZONES.forEach(z=>{if(sat(C,z.pts))is.push({lvl:"warn",txt:"gêne la porte « "+z.name+" »"});});
-    if(RADS.some(r=>sat(C,rectPts(r))))is.push({lvl:"warn",txt:"est contre un radiateur"});
+    items.forEach((o,j)=>{if(j===i)return;const To=typeOf(o);if(tucks(T.shape,To.shape)||WALLMOUNT.has(T.shape)||WALLMOUNT.has(To.shape))return;if(sat(C,F[j]))is.push({lvl:"bad",txt:"chevauche "+ordLabel(o)});});
+    if(!WALLMOUNT.has(T.shape))DOORZONES.forEach(z=>{if(sat(C,z.pts))is.push({lvl:"warn",txt:"gêne la porte « "+z.name+" »"});});
+    if(!WALLMOUNT.has(T.shape)&&RADS.some(r=>sat(C,rectPts(r))))is.push({lvl:"warn",txt:"est contre un radiateur"});
     it._st=is.some(x=>x.lvl==="bad")?"bad":is.length?"warn":"ok";is.forEach(x=>issues.push({it,...x}));});
 }
 
@@ -481,6 +488,9 @@ function itemSvg(it){
     case "ronde":case "cylindre":g+=`<ellipse class="b" cx="0" cy="0" rx="${w/2}" ry="${d/2}" fill="${fill}"/>`;if(T.shape==="ronde")g+=`<circle class="df" r="${Math.min(w,d)*0.08}"/>`;break;
     case "chaise":g+=R(x0+0.03,y0+0.03,w-0.06,d-0.1,"b",`rx="0.06" fill="${fill}"`)+R(x0+0.02,d/2-0.09,w-0.04,0.07,"df",`rx="0.03"`);break;
     case "fauteuil":g+=R(x0,y0,w,d,"b",`rx="0.12" fill="${fill}"`)+R(x0+0.04,d/2-0.16,w-0.08,0.12,"df",`rx="0.05" style="opacity:.35"`);break;
+    case "oeuf":g+=`<ellipse class="d" cx="0" cy="0" rx="${w/2*0.9}" ry="${d/2*0.9}" style="stroke-dasharray:.06 .04"/><ellipse class="b" cx="0" cy="${-d*0.04}" rx="${w*0.42}" ry="${d*0.32}" fill="${fill}"/>`+R(-w*0.28,d*0.06,w*0.56,d*0.14,"df",`rx="0.06" style="opacity:.3"`)+`<circle class="df" cx="0" cy="${-d*0.3}" r="0.03"/>`;break;
+    case "pouf":g+=R(x0,y0,w,d,"b",`rx="${Math.min(0.2,w/4,d/4)}" fill="${fill}"`)+R(x0+0.1,y0+0.1,w-0.2,d-0.2,"d",`rx="${Math.min(0.14,w/5,d/5)}" style="stroke-dasharray:.05 .04"`);break;
+    case "ecran":g+=R(x0-0.02,y0-0.1,w+0.04,d+0.3,"hit",`fill="transparent"`)+R(x0,y0,w,d,"b",`rx="0.02" fill="${fill}"`)+`<line class="d" x1="${x0+0.06}" y1="${d/2+0.05}" x2="${w/2-0.06}" y2="${d/2+0.05}" style="stroke-dasharray:.08 .05;stroke-width:.025"/>`;break;
     default:g+=R(x0,y0,w,d,"b",`rx="0.015" fill="${fill}"`);
   }
   if(T.shape==="table"||T.shape==="table-t"){if(T.shape==="table")[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy])=>{g+=`<circle class="df" cx="${sx*(w/2-0.06)}" cy="${sy*(d/2-0.06)}" r="0.028"/>`;});
@@ -492,7 +502,7 @@ function itemSvg(it){
   if(T.shape==="bureau")g+=R(x0,y0,w,0.04,"df");
   if(T.shape==="tableau")g+=`<line class="d" x1="${x0+0.03}" y1="0" x2="${w/2-0.03}" y2="0" style="stroke-width:.05;opacity:1"/>`;
   if(T.shape==="bac")g+=R(x0+0.04,y0+0.04,w-0.08,d-0.08,"d");
-  if(w>=0.75&&d>=0.3&&!["chaise","fauteuil"].includes(T.shape)){const rr=((it.r%360)+360)%360;const flip=rr>90&&rr<=270?180:0;const nm=T.name.length>22?T.name.slice(0,21)+"…":T.name;
+  if(w>=0.75&&d>=0.3&&!["chaise","fauteuil","oeuf"].includes(T.shape)){const rr=((it.r%360)+360)%360;const flip=rr>90&&rr<=270?180:0;const nm=T.name.length>22?T.name.slice(0,21)+"…":T.name;
     const fs=Math.min(0.13,w/(nm.length*0.07+0.1));g+=`<text class="t" style="font-size:${fs}px" transform="rotate(${flip})" y="${T.shape==="double"?-d/4:0}">${esc(nm)}</text>`;}
   return g+"</g>";
 }
@@ -811,6 +821,29 @@ const M={
 /* ---------- constructeurs : repère local, x = largeur, z = profondeur (+z = avant), y = haut ---------- */
 const B={};
 B.bloc=(g,w,d,h,c)=>{g.add(rboxMesh(w,h,d,0.012,M.wood(c),0,h/2,0));};
+/* Fauteuil œuf sur pied : socle rond, arceau en C à l'arrière, panier en résine tressée ouvert vers l'avant, coussins */
+B.oeuf=(g,w,d,h,c)=>{const cg=new THREE.Group();const st=mc("ostand",()=>mat(0x2B2C2E,{metalness:0.5,roughness:0.4}));
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(0.46,0.48,0.035,40),st);base.position.y=0.0175;cg.add(base);
+  const P=[[0,0.03,-0.3],[0,0.6,-0.44],[0,1.2,-0.47],[0,1.62,-0.42],[0,1.86,-0.26],[0,1.93,-0.08],[0,1.91,0.0]];
+  for(let i=0;i<P.length-1;i++)tube(cg,st,P[i],P[i+1],0.028);
+  tube(cg,st,[0,1.9,0],[0,1.5,0],0.008);
+  const wick=mc("owk"+c,()=>mat(c,REAL()?{map:rep(TX.fabric,6,6),roughness:0.85,side:THREE.DoubleSide}:{roughness:0.85,side:THREE.DoubleSide}));
+  const shell=new THREE.Mesh(new THREE.SphereGeometry(1,40,28,Math.PI/2+1.05,2*Math.PI-2.1,0,Math.PI),wick);shell.scale.set(0.425,0.53,0.315);shell.position.set(0,0.95,0);cg.add(shell);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(1,0.03,8,40),wick);rim.scale.set(0.3,0.5,1);rim.rotation.y=Math.PI/2;rim.position.set(0,0.95,0.17);
+  const cu=mc("ocu"+c,()=>mat(shade(c,0.45),REAL()?{map:rep(TX.fabric,3,3),roughness:0.95}:{roughness:0.95}));
+  cg.add(rboxMesh(0.6,0.12,0.42,0.05,cu,0,0.58,0.02));const bk=rboxMesh(0.6,0.62,0.12,0.05,cu,0,0.95,-0.16);bk.rotation.x=-0.18;cg.add(bk);
+  cg.scale.set(w/1.02,h/1.95,d/1.02);g.add(cg);};
+/* Pouf géant : coussin rectangulaire rempli */
+B.pouf=(g,w,d,h,c)=>{const fm=M.fabric(c);g.add(rboxMesh(w,h,d,Math.min(0.14,h*0.45),fm,0,h/2,0));
+  g.add(rboxMesh(w-0.16,0.03,d-0.16,0.012,mc("pq"+c,()=>mat(shade(c,-0.08),{roughness:0.95})),0,h-0.008,0));};
+/* Écran de projection enroulable : carter en haut, toile 4:3 déroulée, barre de lestage */
+B.ecran=(g,w,d,h,c)=>{const cm=mc("ecase"+c,()=>mat(c,{metalness:0.45,roughness:0.35}));const z0=-d/2+0.045;
+  g.add(rboxMesh(w,0.085,0.085,0.02,cm,0,h-0.0425,z0));[-1,1].forEach(k=>g.add(box(0.03,0.095,0.095,mc("ecap",()=>mat(0x2B2C2E,{roughness:0.5})),k*(w/2-0.015),h-0.0425,z0)));
+  const cw=w-0.1,ch=Math.max(0.3,Math.min(cw*0.75+0.12,h-0.55));const top=h-0.085;
+  g.add(box(cw,0.12,0.004,mc("eblk",()=>mat(0x111111,{roughness:0.9})),0,top-0.06,z0+0.05));
+  g.add(box(cw,ch-0.12,0.004,mc("ewht",()=>mat(0xFAFAF8,{roughness:0.95,emissive:0xffffff,emissiveIntensity:0.08})),0,top-0.12-(ch-0.12)/2,z0+0.05));
+  g.add(box(cw+0.02,0.03,0.025,mc("ebar",()=>mat(0x2B2C2E,{roughness:0.5})),0,top-ch-0.015,z0+0.05));
+  tube(g,mc("ecord",()=>mat(0x2B2C2E)),[0,top-ch-0.03,z0+0.05],[0,top-ch-0.3,z0+0.05],0.004);};
 B.cylindre=(g,w,d,h,c)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,h,32),M.paint(c));m.scale.set(w,1,d);m.position.y=h/2;g.add(m);};
 function topSlab(g,w,d,h,c,round){const th=Math.min(0.028,h*0.1);let m;
   if(round){m=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,th,48),M.woodTop(c));m.scale.set(w,1,d);}else m=new THREE.Mesh(rbox(w,th,d,0.004),M.woodTop(c));
@@ -963,7 +996,7 @@ function build3D(){
   paint3DSel();
 }
 /* Ombres au sol : une seule carte douce pour toute la salle (empreintes floutées ensemble). */
-const LEGGED=new Set(["table","table-t","ronde","chaise","fauteuil","poste","tableau"]);
+const LEGGED=new Set(["table","table-t","ronde","chaise","fauteuil","poste","tableau","oeuf"]);
 function floorShadows(){
   const PX=60,pad=0.5,W0=BOUNDS.W,H0=BOUNDS.H;const W=Math.ceil((W0+2*pad)*PX),Hh=Math.ceil((H0+2*pad)*PX);
   const mk=()=>{const c=document.createElement("canvas");c.width=W;c.height=Hh;const g=c.getContext("2d");g.setTransform(PX,0,0,PX,pad*PX,pad*PX);g.fillStyle="#fff";return [c,g];};
@@ -971,13 +1004,14 @@ function floorShadows(){
   gW.strokeStyle="#fff";gW.lineWidth=0.16;Object.values(ROOMS).forEach(P=>{gW.beginPath();P.forEach((q,i)=>i?gW.lineTo(q[0],q[1]):gW.moveTo(q[0],q[1]));gW.closePath();gW.stroke();});
   PILLARS.forEach(p=>gC.fillRect(p.x-0.02,p.y-0.02,p.w+0.04,p.h+0.04));
   const dot=(g,x,y,r)=>{g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();};
-  items.forEach(it=>{const T=typeOf(it);const {w,d}=dims(T);const sh=T.shape;
+  items.forEach(it=>{const T=typeOf(it);const {w,d}=dims(T);const sh=T.shape;if(WALLMOUNT.has(sh))return;
     for(const g of [gA,gC]){g.save();g.translate(it.x,it.y);g.rotate(it.r*Math.PI/180);}
     if(ROUND.has(sh)){gA.beginPath();gA.ellipse(0,0,w/2*0.92,d/2*0.92,0,0,Math.PI*2);gA.fill();}else gA.fillRect(-w/2+0.03,-d/2+0.03,w-0.06,d-0.06);
     if(!LEGGED.has(sh)){if(ROUND.has(sh)){gC.beginPath();gC.ellipse(0,0,w/2,d/2,0,0,Math.PI*2);gC.fill();}else gC.fillRect(-w/2,-d/2,w,d);}
     else if(sh==="table"){const ix=w/2-0.06,iz=d/2-0.06;[[-ix,-iz],[ix,-iz],[-ix,iz],[ix,iz]].forEach(([x,z])=>dot(gC,x,z,0.035));}
     else if(sh==="table-t"||sh==="poste"){[-1,1].forEach(s=>{const px=s*(w/2-Math.min(0.12,w*0.12));gC.fillRect(px-0.04,-d*0.45,0.08,d*0.9);});if(sh==="poste"){const n=Math.max(1,Math.round(w/0.8));for(let k=0;k<n;k++)gC.fillRect(-w/2+w*(k+0.5)/n+0.16,-d/2+0.06,0.18,0.38);}}
     else if(sh==="ronde"){dot(gC,0,0,Math.min(w,d)*0.3);}
+    else if(sh==="oeuf"){dot(gC,0,0,Math.min(w,d)*0.46);}
     else if(sh==="tableau"){[-1,1].forEach(s=>gC.fillRect(s*(w/2-0.02)-0.03,-d/2,0.06,d));}
     else{const sx=w/2*0.8,sz=d/2*0.8;[[-sx,-sz],[sx,-sz],[-sx,sz],[sx,sz]].forEach(([x,z])=>dot(gC,x,z,0.03));}
     gA.restore();gC.restore();});
